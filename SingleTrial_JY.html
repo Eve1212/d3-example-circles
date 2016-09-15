@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<p>Shift LeftMean:
+    <input type="range" min="0", max="10", step="1", value="5" id="opacity"/>
+    <output id="opacity">5.00</output>
+
+</p>
+<p align = "right">Shift RightMan:
+
+<input type="range" min="0", max="10", step="1", value="5" id="opacity3"/>
+<output id="opacit3">5.00</output>
+</p>
+<p>Change LeftVariability:
+    <input type="range" min="0", max= "2", step="0.2", value="1" id="opacity2"/>
+
+    <output id="opacity2">1.00</output>
+</p>
+
+<p  align="right">Change RightVariability:
+    <input type="range" min="0", max= "2", step="0.2", value="1" id="opacity4"/>
+
+    <output id="opacity4">1.00</output>
+</p>
+<div id="option">
+    <input name="sampleButton"
+           type="button"
+           value="Draw a Sample"
+           onclick="SampleDraw()" />
+</div>
+
+<script>
+
+
+
+var a =0; var b=100; var c=50;
+var color;
+/*function colorConvert(h,s,v){
+    return color = "hsl()"
+}*/
+
+function rgb(r, g, b){
+    return ["rgb(",r,",",g,",",b,")"].join("");
+}
+
+
+/*function hsl(h, s, l){
+    return ["hsl(",h,",",s,"%,",l,"%)"].join("");
+}*/
+
+var numOfCircles = 30;
+var g = d3.range(numOfCircles).map(function(){return Math.floor(Math.random()*(100-150)+100)});
+//alert(g);
+var iniMean = d3.mean(g),
+        iniSD = d3.deviation(g);
+//alert(iniSD)
+
+//alert(colorDeviation)
+var newValue=[];
+
+var colorDeviation = d3.range(numOfCircles).map(d3.random.normal());
+//function colorUpdate(i){
+//for (var i = 0; i < numOfCircles; i++)
+
+    // newValue.push(Math.floor(colorDeviation[i]*iniSD+iniMean))}
+
+//alert(newValue);
+
+
+
+    var color;
+    width = screen.width,
+            height = 800;
+   var radius = 20;
+
+
+
+
+   // svg = d3.select("div#chart").append("svg").attr("height", height).attr("width", width);
+   /* var nodes = d3.range(200).map(function() { return {radius: Math.random() * 12 + 4}; }),
+     root = nodes[0];
+    //color = d3.scale.category10();
+
+    root.radius = 0;
+    root.fixed = true;*/
+
+
+
+
+
+   var nodes=[];
+
+    //var ColorDeviation = [];
+
+    for (var i=0; i<=numOfCircles; i++) nodes.push({});
+    //for (var i=0; i < numOfCircles;i++) ColorDeviation.push({});
+
+
+    fillData();
+
+  function fillData() {
+        nodes.forEach(function(d, i) {
+            d.x = Math.random()*width;
+            d.y = Math.random()*height;
+            d.radius = radius;
+        });
+    }
+
+
+
+    var force = d3.layout.force()
+            .gravity(0.05)
+            .charge(function(d, i) { return i ? 0 : -2000; })
+            .nodes(nodes)
+            .size([width/2, height]);
+
+    force.start();
+
+
+    var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+
+force.on("tick", function(e) {
+        var q = d3.geom.quadtree(nodes),
+                i = 0,
+                n = nodes.length;
+
+        while (++i < n) q.visit(collide(nodes[i]));
+
+        svg.selectAll("circle")
+                .filter(function(d, i) { return i<numOfCircles/2})
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+
+
+        svg.selectAll("circle")
+            .filter(function(d, i) { return i>=numOfCircles/2 && i < numOfCircles})
+            .attr("cx", function(d) { return d.x+width/2; })
+            .attr("cy", function(d) { return d.y; });
+    });
+
+
+
+
+    function collide(node) {
+        var r = node.radius + 30,
+                nx1 = node.x - r,
+                nx2 = node.x + r,
+                ny1 = node.y - r,
+                ny2 = node.y + r;
+        return function(quad, x1, y1, x2, y2) {
+            if (quad.point && (quad.point !== node)) {
+                var x = node.x - quad.point.x,
+                        y = node.y - quad.point.y,
+                        l = Math.sqrt(x * x + y * y),
+                        r = node.radius + quad.point.radius+20;
+                if (l < r) {
+                    l = (l - r) / l * .5;
+                    node.x -= x *= l;
+                    node.y -= y *= l;
+                    quad.point.x += x;
+                    quad.point.y += y;
+                }
+            }
+            return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
+        };
+    }
+
+    svg.selectAll("circle")
+            //.filter(function(d, i) { return i<20})
+            .data(nodes.slice(1))
+            .enter().append("circle")
+            // .attr("r", function(d) { return d.radius; })
+            .attr("r", radius )
+
+           //.attr("fill", function(d) {color= rgb(0,g,0); return d.color})
+            .attr("class", "nodes")
+            .attr("fill", function(d,i){return color=  rgb(0,g[i],0)});
+
+
+
+    /*svg.selectAll("empty").data(nodes).enter().append("circle").attr("cx", function(d) {
+        return d.x;
+    }).attr("cy", function(d) {
+        return d.y;
+    }).attr("r", radius).attr("fill", color).attr("stroke", "black").attr("class", "points");*/
+
+
+
+
+
+
+    d3.select("input[type=range]#opacity").on("input", function() {
+        //var opacity;
+        var opacity = this.value;
+        d3.select("output#opacity").text(d3.format(".2f")(opacity));
+        return d3.selectAll("circle.nodes"). filter(function(d, i) { return i<numOfCircles/2}).attr("fill", function (d, i) {return color = rgb (0, Math.abs(Math.floor((255-g[i])/10*opacity+g[i])),0)});
+    });
+
+    // var variability;
+    d3.select("input[type=range]#opacity2").on("input", function() {
+     var opacity = this.value;
+        //alert(opacity);
+       // var opacity;
+        //color = rgb(0,g[i]*colorDeviation,0)
+        //opacity = this.value*colorDeviation;
+
+        var variabilityMultiplier = 10*opacity
+      //  var newValue = d3.range(numOfCircles).map(d3.random.normal(iniMean,iniSD*variabilityMultiplier));
+        d3.select("output#opacity2").text(d3.format(".2f")(opacity));
+        return d3.selectAll("circle.nodes"). filter(function(d, i) { return i<numOfCircles/2}).attr("fill", function (d,i) {return color= rgb(0,Math.abs(Math.floor(colorDeviation[i]*iniSD*variabilityMultiplier+iniMean)),0)});
+    });
+
+
+
+
+
+d3.select("input[type=range]#opacity3").on("input", function() {
+    //var opacity;
+    var opacity = this.value;
+
+    d3.select("output#opacity3").text(d3.format(".2f")(opacity));
+    return d3.selectAll("circle.nodes") .filter(function(d, i) { return i>=numOfCircles/2 && i < numOfCircles}).attr("fill", function (d, i) {return color = rgb (0, Math.abs(Math.floor((255-g[i])/10*opacity+g[i])),0)});
+});
+
+// var variability;
+d3.select("input[type=range]#opacity4").on("input", function() {
+   var opacity = this.value;
+    //alert(opacity);
+    // var opacity;
+    //color = rgb(0,g[i]*colorDeviation,0)
+    //opacity = this.value*colorDeviation;
+
+    var variabilityMultiplier = 10*opacity
+    //  var newValue = d3.range(numOfCircles).map(d3.random.normal(iniMean,iniSD*variabilityMultiplier));
+    d3.select("output#opacity4").text(d3.format(".2f")(opacity));
+    return d3.selectAll("circle.nodes"). filter(function(d, i) { return i>=numOfCircles/2 && i < numOfCircles}).attr("fill", function (d,i) {return color= rgb(0,Math.abs(Math.floor(colorDeviation[i]*iniSD*variabilityMultiplier+iniMean)),0)});
+});
+
+/*function update(sel, dont_animate) {
+    var sel2 = dont_animate ? sel : sel.transition();
+    sel2
+            .attr('cx', function(d) { return d.x })
+            .attr('cy', function(d) { return d.y })
+            .attr('r', function(d) { return d.radius });
+}*/
+
+
+function SampleDraw(){
+    //force.on();
+
+
+     //.style('border', '2px solid silver');
+   // fillData(); // change data for all circles
+    // but then only update the first 10 <circle> elements in the svg according to their changed data
+   /* update(d3.selectAll('circle')
+            .filter(function(d, i) { return i<Math.random()*numOfCircles}));*/
+
+    d3.selectAll("circle.nodes").filter(function(d,i) { return i<Math.random()*numOfCircles}).remove()
+
+}
+/*for (var i = 0; i < numOfCircles; i++)
+
+    newValue.push(Math.floor(colorDeviation[i]*iniSD*variability+iniMean))*/
+
+
+
+</script>
+
+</body>
+</html>
