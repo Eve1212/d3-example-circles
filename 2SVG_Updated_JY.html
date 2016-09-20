@@ -1,0 +1,227 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>2 SVGs</title>
+<script src="d3.v4.min.js"></script>
+<link rel="stylesheet" href="main.css"/>
+
+<body>
+<div style="display: flex">
+    <div id='left'>
+        <p>Shift Mean:
+            <input type="range" min="0", max="256", step="1", value="128" id="mean"/>
+            <span id="mean_label">128</span>
+        </p>
+        <p>Change Variability:
+            <input type="range" min="0", max= "2", step="0.2", value="1" id="var"/>
+            <span id="var_label">1.0</span>
+        </p>
+    </div>
+
+    <div id='right'>
+        <p>Shift Mean:
+            <input type="range" min="0", max="256", step="1", value="128" id="mean"/>
+            <span id="mean_label">128</span>
+        </p>
+        <p>Change Variability:
+            <input type="range" min="0", max= "2", step="0.2", value="1" id="var"/>
+            <span id="var_label">1.0</span>
+        </p>
+    </div>
+</div>
+
+<div>
+
+    <button id = "reset" onclick = "Reset()">Reset</button>
+    <button id = "sampledraw" onclick = "SampleDraw()">Draw a Sample from each population</button>
+
+</div>
+
+<script>
+
+    /// Add moveToFront functionality to d3 selections.
+    d3.selection.prototype.moveToFront = function() {
+        return this.each(function(){
+            this.parentNode.appendChild(this);
+        });
+    };
+
+    var pop_size = 96
+            , sample_size = 3
+            , radius = 20
+            , height = 320;
+
+
+    var iniMean = 128
+            ,iniSD = 30
+            ,colorDeviation = d3.range(pop_size).map(d3.randomNormal())
+            ,iniCol = d3.range(pop_size).map(d3.randomNormal(iniMean, iniSD));
+
+
+    function arrangeCircleData(circles, cols) {
+        circles.forEach(function(circle, i) {
+            circle.x = radius + (i % cols)*2*radius;
+            circle.y = radius + Math.floor(i/cols)*2*radius;
+        });
+    }
+
+    function initCircleData(count) {
+        var cs = [];
+        for (var i = 0; i < count; i++) cs.push({ x: 0, y: 0, idx: i, value: Math.random() });
+        return cs;
+    }
+
+    function initSVG(container) {
+        d3.select(container)
+                .select('#mean').on('input', function() {
+            var mean = this.value;
+            d3.select(container).select('#mean_label').text(mean);
+            return d3.select(container).selectAll("circle.token").attr('fill', function (d,i) {
+                var meanshift = mean- iniMean;
+                return rgb(0, Math.floor(iniCol[i] + meanshift),0)
+            })
+
+        });
+
+        d3.select(container)
+                .select('#var').on('input', function() {
+            var varianceMultiplier = this.value;
+            d3.select(container).select('#var_label').text(varianceMultiplier);
+            return d3.select(container).selectAll("circle.token").attr('fill', function (d,i) {
+                var newGValue = Math.abs(Math.floor(colorDeviation[i]*iniSD*varianceMultiplier+iniMean))
+                return rgb(0, newGValue,0)
+            })
+
+        });
+
+        d3.select(container)
+                .append('svg')
+                .attr('width', '480px')
+                .attr('height', height + 'px')
+                .style('border', '1px silver solid');
+    }
+
+
+
+
+
+    function initCircleElements(svg, data) {
+        var sel = d3.select(svg)
+                .selectAll('circle.token')
+                .data(data);
+
+        sel.enter().append('circle')
+                .classed('token', true);
+
+        sel.exit().remove();
+
+        d3.select(svg).selectAll('circle.token')
+                .attr('r', radius)
+                .attr('cx', function(d) { return d.x })
+                .attr('cy', function(d) { return d.y })
+                //.style('fill', function(d) { return col(d.value) })
+                .attr('fill', function (d,i){return col = rgb(0,Math.floor(iniCol[i]),0)})
+                .style('stroke', 'black')
+                .style('stroke-width', '0.3');
+    }
+
+    function updateCircleElements(svg, duration) {
+        d3.select(svg)
+                .selectAll('circle.token')
+                .transition()
+                .duration(duration)
+                .attr('cx', function(d) { return d.x })
+                .attr('cy', function(d) { return d.y })
+    }
+
+
+    initSVG('div#left');
+    var width = d3.select('div#left svg').node().getBoundingClientRect().width
+            , cols = Math.floor(width/(2*radius));
+    var cs1 = initCircleData(pop_size);
+    arrangeCircleData(cs1, cols);
+    initCircleElements('div#left svg', cs1);
+
+    initSVG('div#right');
+    var cs2 = initCircleData(pop_size);
+    arrangeCircleData(cs2, cols);
+    initCircleElements('div#right svg', cs2);
+
+    // Generate a random sample
+    var sampCols = cols - 4;
+    var sampleSize  = Math.floor(Math.random() * pop_size);
+    var cs1sample = shuffle(cs1).slice(0,sampleSize);
+    cs1sample.forEach(function(circle, i) {
+        circle.x = 100+ (i % sampCols)*2*radius; circle.y = height+radius*2+ + Math.floor(i/sampCols)*2*radius;
+    });
+    var cs2sample = shuffle(cs2).slice(0,sampleSize);
+    cs2sample.forEach(function(circle, i) {
+        circle.x = 100+ (i % sampCols)*2*radius; circle.y = height+radius*2+ + Math.floor(i/sampCols)*2*radius;
+    });
+
+
+
+
+    d3.selectAll('div#left svg circle.token')
+            .filter(function(d) { return cs1sample.indexOf(d) !== -1 })
+            .moveToFront();
+
+    d3.selectAll('div#right svg circle.token')
+            .filter(function(d) { return cs2sample.indexOf(d) !== -1 })
+            .moveToFront();
+
+
+    // shuffle an array of elements to randomly draw a sample
+    function shuffle(array) {
+        var currentIndex = array.length, temporaryValue, randomIndex;
+
+        // While there remain elements to shuffle...
+        while (0 !== currentIndex) {
+
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+
+            // And swap it with the current element.
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+
+        return array;
+    }
+
+    // define rgb color
+    function rgb(r, g, b){
+        return ["rgb(",r,",",g,",",b,")"].join("");
+    }
+
+    // draw a sample from each population
+    function SampleDraw(){
+        updateCircleElements('div#left svg', 2000);
+        updateCircleElements('div#right svg', 2000);
+    }
+
+    // reset
+
+    function Reset(){
+        pop_size = Math.floor(Math.random()*96)+1
+        initSVG('div#left svg');
+        initSVG('div#right svg');
+        cs1 = initCircleData(pop_size);
+        cs2 = initCircleData(pop_size);
+        arrangeCircleData(cs1, cols);
+        initCircleElements('div#left svg', cs1);
+        arrangeCircleData(cs2, cols);
+        initCircleElements('div#right svg', cs2);
+
+
+    }
+
+
+
+
+
+
+</script>
+</body>
+</html>
